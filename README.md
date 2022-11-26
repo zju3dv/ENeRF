@@ -1,7 +1,7 @@
 # ENeRF: Efficient Neural Radiance Fields for Interactive Free-viewpoint Video
 
 > [Efficient Neural Radiance Fields for Interactive Free-viewpoint Video](https://arxiv.org/abs/2112.01517)  
-> Haotong Lin, Sida Peng, Zhen Xu, Yunzhi Yan, Qing Shuai, Hujun Bao and Xiaowei Zhou \
+> Haotong Lin*, Sida Peng*, Zhen Xu, Yunzhi Yan, Qing Shuai, Hujun Bao and Xiaowei Zhou \
 > SIGGRAPH Asia 2022 conference track  
 > [Project Page](https://zju3dv.github.io/enerf)
 
