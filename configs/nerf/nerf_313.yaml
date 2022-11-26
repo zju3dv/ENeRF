@@ -1,0 +1,64 @@
+task: nerf
+gpus: [0]
+exp_name: 'nerf_313'
+
+N_rays: 1024
+chunk_size: 4096
+cascade_samples: [64]
+white_bkgd: False
+cache_items: 100000
+
+network:
+    nerf:
+        W: 256
+        D: 8
+        V_D: 1
+    xyz_encoder:
+        type: 'frequency'
+        input_dim: 3
+        freq: 10
+    dir_encoder:
+        type: 'frequency'
+        input_dim: 3
+        freq: 4
+
+train_dataset_module: lib.datasets.light_stage
+test_dataset_module: lib.datasets.light_stage
+network_module: lib.networks.nerf.network
+loss_module: lib.train.losses.nerf
+evaluator_module: lib.evaluators.nerf
+visualizer_module: lib.visualizers.nerf
+
+train_dataset:
+    data_root: 'data/light_stage/CoreView_313'
+    split: 'train'
+    frames: [0, 1, 1] # start:end:skip
+    cameras: [0, -1, 1]
+    input_ratio: 0.5
+
+test_dataset:
+    data_root: 'data/light_stage/CoreView_313'
+    split: 'test'
+    frames: [0, 1, 1]
+    cameras: [0, -1, 1]
+    input_ratio: 0.5
+
+train:
+    batch_size: 1
+    lr: 5e-4
+    weight_decay: 0.
+    epoch: 400
+    scheduler:
+        type: 'exponential'
+        gamma: 0.1
+        decay_epochs: 1000
+    num_workers: 2
+
+test:
+    batch_size: 1
+
+ep_iter: 500
+save_ep: 20
+eval_ep: 5
+save_latest_ep: 5
+log_interval: 10

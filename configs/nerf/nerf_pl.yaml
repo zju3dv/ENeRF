@@ -1,0 +1,11 @@
+parent_cfg: configs/nerf/nerf.yaml
+task: nerf
+exp_name: 'nerf_pl'
+
+train_dataset_module: lib.datasets.nerf.synthetic.Dataset
+test_dataset_module: lib.datasets.nerf.synthetic
+network_module: lib.networks.nerf.network.Network
+loss_module: lib.train.losses.nerf.NetworkWrapper
+evaluator_module: lib.evaluators.nerf
+visualizer_module: lib.visualizers.nerf
+

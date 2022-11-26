@@ -1,0 +1,26 @@
+parent_cfg: configs/nerf/nerf.yaml
+scene: 'IMG_0622'
+
+train_dataset_module: lib.datasets.nerf.colmapvideo
+test_dataset_module: lib.datasets.nerf.colmapvideo
+
+task_arg:
+    cascade_samples: [64, 64]
+
+network:
+    nerf:
+        W: 256
+        D: 8
+        V_D: 1
+
+train_dataset:
+    data_root: 'data/iphonevideo'
+    split: 'train'
+    input_ratio: 0.5
+    cams: [0, -1, 2] 
+
+test_dataset:
+    data_root: 'data/iphonevideo'
+    split: 'test'
+    input_ratio: 0.25
+    cams: [1, -1, 4]

@@ -1,0 +1,87 @@
+task: enerf
+gpus: [0, 1, 2, 3]
+exp_name: 'dtu_pretrain'
+
+# module
+train_dataset_module: lib.datasets.dtu.enerf
+test_dataset_module: lib.datasets.dtu.enerf
+network_module: lib.networks.enerf.network
+loss_module: lib.train.losses.enerf
+evaluator_module: lib.evaluators.enerf
+visualizer_module: lib.visualizers.enerf
+
+save_result: False
+eval_lpips: True
+
+# task config
+enerf:
+    train_input_views: [2, 3, 4]
+    train_input_views_prob: [0.1, 0.8, 0.1]
+    test_input_views: 3
+    viewdir_agg: True 
+    chunk_size: 1000000
+    white_bkgd: False
+    eval_depth: False
+    eval_center: False # only for llff evaluation (same as MVSNeRF: https://github.com/apchenstu/mvsnerf/blob/1fdf6487389d0872dade614b3cea61f7b099406e/renderer.ipynb)
+    sample_on_mask: False # only for ZJU-MoCap/DynamicCap
+    cas_config:
+        num: 2
+        depth_inv: [True, False]
+        volume_scale: [0.125, 0.5]
+        volume_planes: [64, 8]
+        im_feat_scale: [0.25, 0.5]
+        im_ibr_scale: [0.25, 1.]
+        render_scale: [0.25, 1.0]
+        render_im_feat_level: [0, 2]
+        nerf_model_feat_ch: [32, 8]
+        render_if: [True, True]
+        num_samples: [8, 2] # 
+        num_rays: [4096, 32768] # 
+        num_patchs: [0, 0] # 
+        train_img: [True, True]
+        patch_size: [-1, -1] #
+        loss_weight: [0.1, 1.]
+
+train_dataset:
+    data_root: 'dtu' #
+    ann_file: 'data/mvsnerf/dtu_train_all.txt'
+    split: 'train'
+    batch_size: 2
+    input_ratio: 1.
+
+test_dataset:
+    data_root: 'dtu' #
+    ann_file: 'data/mvsnerf/dtu_val_all.txt'
+    split: 'test'
+    batch_size: 1
+    input_ratio: 1.
+
+train:
+    batch_size: 1
+    lr: 5e-4
+    weight_decay: 0.
+    epoch: 300
+    scheduler:
+        type: 'exponential'
+        gamma: 0.5
+        decay_epochs: 50
+    batch_sampler: 'enerf'
+    collator: 'enerf' 
+    sampler_meta:
+        input_views_num: [2, 3, 4] 
+        input_views_prob: [0.1, 0.8, 0.1]
+    num_workers: 4
+
+test:
+    batch_size: 1
+    collator: 'enerf' 
+    batch_sampler: 'enerf'
+    sampler_meta:
+        input_views_num: [3] 
+        input_views_prob: [1.]
+
+ep_iter: 1000
+save_ep: 5
+eval_ep: 5
+save_latest_ep: 1
+log_interval: 1
