@@ -1,0 +1,24 @@
+parent_cfg: configs/enerf/dtu_pretrain.yaml
+
+train_dataset_module: lib.datasets.llff.enerf
+test_dataset_module: lib.datasets.llff.enerf
+
+enerf:
+    eval_center: True
+    cas_config:
+        render_if: [False, True]
+        volume_planes: [32, 8]
+
+train_dataset:
+    data_root: 'nerf_llff_data' #
+    split: 'train'
+    input_h_w: [640, 960]
+    batch_size: 1
+    input_ratio: 1.
+
+test_dataset:
+    data_root: 'nerf_llff_data' #
+    split: 'test'
+    batch_size: 1
+    input_h_w: [640, 960]
+    input_ratio: 1.

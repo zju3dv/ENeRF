@@ -1,0 +1,16 @@
+parent_cfg: configs/enerf/nerf_eval.yaml
+exp_name: nerf_ft_lego
+enerf:
+    test_input_views: 4
+    train_input_views: [3, 4]
+    train_input_views_prob: [0.4, 0.6]
+    cas_config:
+        render_if: [True, True]
+train_dataset:
+    scene: lego
+test_dataset:
+    scene: lego
+train:
+    epoch: 147 # pretrained epoch + 8
+save_ep: 1
+eval_ep: 1

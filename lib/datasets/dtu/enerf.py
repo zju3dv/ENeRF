@@ -100,11 +100,12 @@ class Dataset:
         ret = {'src_inps': src_inps,
                'src_exts': src_exts,
                'src_ixts': src_ixts}
-        ret.update({'tar_img': tar_img,
-                    'tar_ext': tar_ext,
-                    'tar_ixt': tar_ixt,
-                    'tar_dpt': tar_dpt,
-                    'tar_mask': tar_mask})
+        ret.update({'tar_ext': tar_ext,
+                    'tar_ixt': tar_ixt})
+        if self.split != 'train':
+            ret.update({'tar_img': tar_img,
+                        'tar_dpt': tar_dpt,
+                        'tar_mask': tar_mask})
         ret.update({'near_far': np.array(self.depth_ranges).astype(np.float32)})
         ret.update({'meta': {'scene': scene, 'tar_view': tar_view, 'frame_id': 0}})
 

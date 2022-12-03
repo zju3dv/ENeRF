@@ -42,17 +42,43 @@ unzip dtu_example.zip
 ```
 This script only shows the example directory structure. You should download all the scenes in the DTU dataset and organize the data according to the example directory structure. Otherwise you can only do evaluation and fine-tuning on the example data.
 
-<!-- #### 2. NeRF Synthetic  -->
-<!-- #### 3. Real Forward-facing -->
+#### 2. NeRF Synthetic and Real Forward-facing
+Download the NeRF Synthetic and Real Forward-facing datasets from [NeRF](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1) and unzip them to $workspace. 
+You should have the following directory.
+```
+$workspace/nerf_llff_data
+$workspace/nerf_synthetic
+```
 <!-- #### 4. ZJU-MoCap -->
 <!-- #### 5. DynamicCap -->
 <!-- #### 6. Custom Data -->
 
 ## Training and fine-tuning
+
+### Training
 Use the following command to train a generalizable model on DTU.
 ```
 python train_net.py --cfg_file configs/enerf/dtu_pretrain.yaml 
 ```
+
+Our code also supports multi-gpu training. The published pretrained model was trained for 138000 iterations with 4 GPUs.
+```
+python -m torch.distributed.launch --nproc_per_node=4 train_net.py --cfg_file configs/enerf/dtu_pretrain.yaml distributed True gpus 0,1,2,3
+```
+
+
+### Fine-tuning
+
+```
+cd $workspace/trained_model/enerf
+mkdir dtu_ft_scan114
+cp dtu_pretrain/138.pth dtu_ft_scan114
+cd $codespace # codespace is the directory of the ENeRF code
+python train_net.py --cfg_file configs/enerf/dtu/scan114.yaml
+```
+
+Fine-tuning for 3000 and 11000 iterations takes about 11 minutes and 40 minutes, respectively, on our test machine ( i9-12900K CPU, RTX 3090 GPU).
+
 
 ## Evaluation
 
@@ -60,7 +86,7 @@ python train_net.py --cfg_file configs/enerf/dtu_pretrain.yaml
 
 Use the following command to evaluate the pretrained model on DTU.
 ```
-python run.py --type evaluate --cfg_file configs/enerf/dtu_pretrain.yaml enerf.cas_config.render_if False,True gpus 1, enerf.cas_config.volume_planes 48,8 enerf.eval_depth True
+python run.py --type evaluate --cfg_file configs/enerf/dtu_pretrain.yaml enerf.cas_config.render_if False,True enerf.cas_config.volume_planes 48,8 enerf.eval_depth True
 ```
 
 
@@ -71,9 +97,22 @@ python run.py --type evaluate --cfg_file configs/enerf/dtu_pretrain.yaml enerf.c
 FPS:  21.778975517304048
 ```
 
-21.8 FPS@512x640 is tested on a desktop with an Intel i9-12900K CPU and an RTX 3090 GPU.
+21.8 FPS@512x640 is tested on a desktop with an Intel i9-12900K CPU and an RTX 3090 GPU. Add the "save_result True" parameter at the end of the command to save the rendering result.
 
-## Visualization
+### Evaluate the pretrained model on LLFF and NeRF datasets
+
+```
+python run.py --type evaluate --cfg_file configs/enerf/nerf_eval.yaml
+```
+
+```
+python run.py --type evaluate --cfg_file configs/enerf/llff_eval.yaml
+```
+
+
+
+
+
 
 ## Interactive Rendering
 
