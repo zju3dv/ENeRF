@@ -95,7 +95,7 @@ class Dataset:
         near_far = np.array([depth_ranges[:, 0].min().item(), depth_ranges[:, 1].max().item()]).astype(np.float32)
         # near_far = scene_info['depth_ranges'][tar_view]
         ret.update({'near_far': np.array(near_far).astype(np.float32)})
-        ret.update({'meta': {'scene': scene, 'tar_view': tar_view}})
+        ret.update({'meta': {'scene': scene, 'tar_view': tar_view, 'frame_id': 0}})
 
         for i in range(cfg.enerf.cas_config.num):
             rays, rgb, msk = enerf_utils.build_rays(tar_img, tar_ext, tar_ixt, tar_mask, i, self.split)

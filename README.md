@@ -97,7 +97,7 @@ python run.py --type evaluate --cfg_file configs/enerf/dtu_pretrain.yaml enerf.c
 FPS:  21.778975517304048
 ```
 
-21.8 FPS@512x640 is tested on a desktop with an Intel i9-12900K CPU and an RTX 3090 GPU. Add the "save_result True" parameter at the end of the command to save the rendering result.
+21.8 FPS@512x640 is tested on a desktop with an Intel i9-12900K CPU and an RTX 3090 GPU. **Add the "save_result True" parameter at the end of the command to save the rendering result.**
 
 ### Evaluate the pretrained model on LLFF and NeRF datasets
 
