@@ -9,6 +9,19 @@ from plyfile import PlyData
 from lib.utils import data_config
 import re
 
+def get_bound_2d_mask(bounds, K, H, W):
+    points = bounds[:, :3] @ K.T
+    corners_2d = points[..., :2] / points[..., 2:]
+    corners_2d = np.round(corners_2d).astype(int)
+    mask = np.zeros((H, W), dtype=np.uint8)
+    cv2.fillPoly(mask, [corners_2d[[0, 1, 3, 2, 0]]], 1)
+    cv2.fillPoly(mask, [corners_2d[[4, 5, 7, 6, 5]]], 1)
+    cv2.fillPoly(mask, [corners_2d[[0, 1, 5, 4, 0]]], 1)
+    cv2.fillPoly(mask, [corners_2d[[2, 3, 7, 6, 2]]], 1)
+    cv2.fillPoly(mask, [corners_2d[[0, 2, 6, 4, 0]]], 1)
+    cv2.fillPoly(mask, [corners_2d[[1, 3, 7, 5, 1]]], 1)
+    return mask
+
 def read_cam_file(filename):
     with open(filename) as f:
         lines = [line.rstrip() for line in f.readlines()]

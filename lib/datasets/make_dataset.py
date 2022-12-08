@@ -8,6 +8,8 @@ import numpy as np
 import time
 from lib.config.config import cfg
 from torch.utils.data import DataLoader, ConcatDataset
+import cv2
+cv2.setNumThreads(1)
 
 
 # torch.multiprocessing.set_sharing_strategy('file_system')

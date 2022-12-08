@@ -1,6 +1,27 @@
 from lib.config import cfg
 import cv2
 import numpy as np
+
+def sample_patch(num_patch, patch_size, H, W, msk_sample):
+    half_patch_size = patch_size // 2
+    if msk_sample.sum() > 0:
+        num_fg_patch = num_patch
+        non_zero = msk_sample.nonzero()
+        permutation = np.random.permutation(msk_sample.sum())[:num_fg_patch].astype(np.int32)
+        X_, Y_ = non_zero[1][permutation], non_zero[0][permutation]
+        X_ = np.clip(X_, half_patch_size, W-half_patch_size)
+        Y_ = np.clip(Y_, half_patch_size, H-half_patch_size)
+    else:
+        num_fg_patch = 0
+    num_patch = num_patch - num_fg_patch
+    X = np.random.randint(low=half_patch_size, high=W-half_patch_size, size=num_patch)
+    Y = np.random.randint(low=half_patch_size, high=H-half_patch_size, size=num_patch)
+    if num_fg_patch > 0:
+        X = np.concatenate([X, X_]).astype(np.int32)
+        Y = np.concatenate([Y, Y_]).astype(np.int32)
+    grid = np.meshgrid(np.arange(patch_size)-half_patch_size, np.arange(patch_size)-half_patch_size)
+    return np.concatenate([grid[0].reshape(-1) + x for x in X]), np.concatenate([grid[1].reshape(-1) + y for y in Y])
+
 def build_rays(tar_img, tar_ext, tar_ixt, tar_msk, level, split):
     scale = cfg.enerf.cas_config.render_scale[level]
     if scale != 1.:
@@ -11,12 +32,12 @@ def build_rays(tar_img, tar_ext, tar_ixt, tar_msk, level, split):
     H, W = tar_img.shape[:2]
     c2w = np.linalg.inv(tar_ext)
     if split == 'train' and not cfg.enerf.cas_config.train_img[level]:
-        if cfg.sample_on_mask: # 313
+        if cfg.enerf.sample_on_mask: # 313
             msk_sample = tar_msk
             num_fg_rays = int(min(cfg.enerf.cas_config.num_rays[level]*0.75, tar_msk.sum()*0.95))
             non_zero = msk_sample.nonzero()
             permutation = np.random.permutation(tar_msk.sum())[:num_fg_rays].astype(np.int32)
-            X_, Y_ = non_zero[1][permutation], non_zero[0][[permutation]]
+            X_, Y_ = non_zero[1][permutation], non_zero[0][permutation]
         else:
             num_fg_rays = 0
             msk_sample = np.zeros_like(tar_msk)

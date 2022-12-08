@@ -6,12 +6,7 @@ from .feature_net import FeatureNet, CNNRender
 from .cost_reg_net import CostRegNet, MinCostRegNet
 from . import utils
 from lib.config import cfg
-if cfg.rendering_mode == 'ibrnet':
-    from .nerf import NeRF
-elif cfg.rendering_mode == 'mvsnerf':
-    from .nerf import MVSNeRF as NeRF
-else:
-    __import__('ipdb').set_trace()
+from .nerf import NeRF
 
 class Network(nn.Module):
     def __init__(self,):
@@ -25,8 +20,6 @@ class Network(nn.Module):
             setattr(self, f'cost_reg_{i}', cost_reg_l)
             nerf_l = NeRF(feat_ch=cfg.enerf.cas_config.nerf_model_feat_ch[i]+3)
             setattr(self, f'nerf_{i}', nerf_l)
-        # self.cnn_renderer = CNNRender()
-
 
     def render_rays(self, rays, **kwargs):
         level, batch, im_feat, feat_volume, nerf_model = kwargs['level'], kwargs['batch'], kwargs['im_feat'], kwargs['feature_volume'], kwargs['nerf_model']
@@ -46,12 +39,12 @@ class Network(nn.Module):
         img_feat_rgb_dir = utils.get_img_feat(world_xyz, img_feat_rgb, batch, self.training, level) # B * N * S * (8+3+4)
         net_output = nerf_model(vox_feat, img_feat_rgb_dir)
         net_output = net_output.reshape(B, -1, N_samples, net_output.shape[-1])
-        outputs = utils.raw2outputs(net_output, z_vals, cfg.white_bkgd)
+        outputs = utils.raw2outputs(net_output, z_vals, cfg.enerf.white_bkgd)
         return outputs
 
     def batchify_rays(self, rays, **kwargs):
         all_ret = {}
-        chunk = cfg.chunk_size
+        chunk = cfg.enerf.chunk_size
         for i in range(0, rays.shape[1], chunk):
             ret = self.render_rays(rays[:, i:i + chunk], **kwargs)
             for k in ret:
@@ -72,13 +65,6 @@ class Network(nn.Module):
                 'level_0': feat2.reshape((B, S, feat2.shape[1], H//4, W//4)),
                 }
         return feats
-
-    def forward_render(self, ret, batch):
-        B, _, _, H, W = batch['src_inps'].shape
-        rgb = ret['rgb'].reshape(B, H, W, 3).permute(0, 3, 1, 2)
-        rgb = self.cnn_renderer(rgb)
-        ret['rgb'] = rgb.permute(0, 2, 3, 1).reshape(B, H*W, 3)
-
 
     def forward(self, batch):
         feats = self.forward_feat(batch['src_inps'])
@@ -113,7 +99,6 @@ class Network(nn.Module):
                     im_feat=feats[f'level_{im_feat_level}'],
                     nerf_model=getattr(self, f'nerf_{i}'),
                     level=i)
-
             if 'mask_at_box' in batch and not self.training and i == cfg.enerf.cas_config.num - 1:
                 rgb = torch.zeros_like(batch['mask_at_box'].reshape(1, -1))[..., None].repeat(1, 1, 3).float()
                 mask_at_box = batch['mask_at_box'].bool().reshape(1, -1)
