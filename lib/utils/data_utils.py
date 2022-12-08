@@ -9,6 +9,21 @@ from plyfile import PlyData
 from lib.utils import data_config
 import re
 
+
+def add_batch(batch):
+    if isinstance(batch, tuple) or isinstance(batch, list):
+        batch = [add_batch(b) for b in batch]
+    elif isinstance(batch, dict):
+        batch_ = {}
+        for key in batch:
+            batch_[key] = add_batch(batch[key])
+        batch = batch_
+    elif isinstance(batch, torch.Tensor) or isinstance(batch, np.ndarray):
+        batch = batch[None]
+    else:
+        batch = torch.tensor(batch)[None]
+    return batch
+
 def get_bound_2d_mask(bounds, K, H, W):
     points = bounds[:, :3] @ K.T
     corners_2d = points[..., :2] / points[..., 2:]

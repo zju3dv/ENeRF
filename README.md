@@ -129,6 +129,22 @@ FPS:  49.24468263992353
 
 ## Interactive Rendering
 
+We release the interactive rendering GUI for ZJU-MoCap dataset.
+
+```
+python gui_human.py --cfg_file configs/enerf/interactive/zjumocap.yaml
+```
+
+```
+Usage:
+
+Mouse wheel:          Zoom in/out
+Mouse left button:    Move
+Mouse right button:   Rotate
+Keyboard a:           Align #  Hold down a and then use the mouse right button to rotate the object for a good rendering trajectory
+Keyboard s:           Snap
+```
+
 ## Citation
 
 If you find this code useful for your research, please use the following BibTeX entry.

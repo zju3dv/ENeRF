@@ -7,3 +7,8 @@ kornia
 ipdb
 lpips
 tensorboardX
+glfw
+pyglm
+pyopengl
+imgui
+termcolor

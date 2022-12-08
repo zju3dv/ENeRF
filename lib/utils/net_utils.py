@@ -10,6 +10,65 @@ import yaml
 from lib.config import cfg
 
 
+def gen_rays_bbox(rays, bounds):
+    rays_o, rays_d = rays[..., :3], rays[..., 3:6]
+    norm_d = torch.norm(rays_d, dim=-1, keepdim=True)
+    viewdir = rays_d / norm_d
+    viewdir[(viewdir < 1e-5) & (viewdir > -1e-10)] = 1e-5
+    viewdir[(viewdir > -1e-5) & (viewdir < 1e-10)] = -1e-5
+
+    tmin = (bounds[0:1] - rays_o[:1]) / viewdir
+    tmax = (bounds[1:2] - rays_o[:1]) / viewdir
+    t1 = torch.min(tmin, tmax)
+    t2 = torch.max(tmin, tmax)
+
+    near = torch.max(t1, dim=-1)[0]
+    far = torch.min(t2, dim=-1)[0]
+    mask_at_box = near < far
+    return mask_at_box
+
+import time
+class perf_timer:
+    def __init__(self, msg="Elapsed time: {}s", logf=lambda x: print(colored(x, 'yellow')), sync_cuda=True, use_ms=False, disabled=False):
+        self.logf = logf
+        self.msg = msg
+        self.sync_cuda = sync_cuda
+        self.use_ms = use_ms
+        self.disabled = disabled
+
+        self.loggedtime = None
+
+    def __enter__(self,):
+        if self.sync_cuda:
+            torch.cuda.synchronize()
+        self.start = time.perf_counter()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.sync_cuda:
+            torch.cuda.synchronize()
+        self.logtime(self.msg)
+
+    def logtime(self, msg=None, logf=None):
+        if self.disabled:
+            return
+        # SAME CLASS, DIFFERENT FUNCTIONALITY, is this good?
+        # call the logger for timing code sections
+        if self.sync_cuda:
+            torch.cuda.synchronize()
+
+        # always remember current time
+        prev = self.loggedtime
+        self.loggedtime = time.perf_counter()
+
+        # print it if we've remembered previous time
+        if prev is not None and msg:
+            logf = logf or self.logf
+            diff = self.loggedtime-prev
+            diff *= 1000 if self.use_ms else 1
+            logf(msg.format(diff))
+
+        return self.loggedtime
+
 def sigmoid(x):
     y = torch.clamp(x.sigmoid(), min=1e-4, max=1 - 1e-4)
     return y
