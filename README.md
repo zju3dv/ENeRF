@@ -49,7 +49,11 @@ You should have the following directory.
 $workspace/nerf_llff_data
 $workspace/nerf_synthetic
 ```
-<!-- #### 4. ZJU-MoCap -->
+#### 3. ZJU-MoCap
+
+Download the ZJU-MoCap dataset from [NeuralBody](https://github.com/zju3dv/neuralbody/blob/master/INSTALL.md#zju-mocap-dataset).
+Put it into $workspace/zju_mocap/CoreView_313.
+
 <!-- #### 5. DynamicCap -->
 <!-- #### 6. Custom Data -->
 
@@ -109,10 +113,19 @@ python run.py --type evaluate --cfg_file configs/enerf/nerf_eval.yaml
 python run.py --type evaluate --cfg_file configs/enerf/llff_eval.yaml
 ```
 
+### Evaluate the pretrained model on ZJU-MoCap dataset.
 
+```
+python run.py --type evaluate --cfg_file configs/enerf/zjumocap_eval.yaml
+```
 
-
-
+```
+==============================
+CoreView_313_level1 psnr: 31.48 ssim: 0.971 lpips:0.042
+{'psnr': 31.477305846323087, 'ssim': 0.9714806, 'lpips': 0.04184799361974001}
+==============================
+FPS:  49.24468263992353
+```
 
 ## Interactive Rendering
 
