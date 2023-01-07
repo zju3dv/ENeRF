@@ -83,6 +83,12 @@ python train_net.py --cfg_file configs/enerf/dtu/scan114.yaml
 
 Fine-tuning for 3000 and 11000 iterations takes about 11 minutes and 40 minutes, respectively, on our test machine ( i9-12900K CPU, RTX 3090 GPU).
 
+### Fine-tuning on the ZJU-MoCap dataset
+
+```
+python train_net.py --cfg_file configs/enerf/zjumocap/zjumocap_train.yaml
+```
+
 
 ## Evaluation
 

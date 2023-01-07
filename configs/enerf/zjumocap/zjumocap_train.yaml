@@ -1,0 +1,56 @@
+parent_cfg: 'configs/enerf/dtu_pretrain.yaml'
+exp_name: zjumocap
+pretrain: dtu_pretrain
+
+train_dataset_module: lib.datasets.zjumocap.enerf
+test_dataset_module: lib.datasets.zjumocap.enerf
+network_module: lib.networks.enerf.network_human
+evaluator_module: lib.evaluators.enerf_human
+
+enerf:
+    sample_on_mask: True
+    train_input_views: [2, 3]
+    train_input_views_prob: [0.9, 0.1]
+    test_input_views: 2
+    cas_config:
+        train_img: [False, False]
+        patch_size: [-1, 64] #
+        num_rays: [4096, 16384] # 
+        num_patchs: [0, 4] # 
+        volume_planes: [32, 8]
+        render_if: [True, True]
+
+train_dataset:
+    data_root: 'zju_mocap'
+    scene: 'CoreView_313'
+    split: train
+    frames: [0, 600, 1]
+    input_views: [0, -1, 2]
+    render_views: [0, -1, 2]
+    input_ratio: 0.5
+
+test_dataset:
+    data_root: 'zju_mocap'
+    scene: 'CoreView_313'
+    split: test
+    frames: [0, 600, 100]
+    input_views: [0, -1, 2]
+    render_views: [1, -1, 2]
+    input_ratio: 0.5
+
+train:
+    batch_size: 1
+    lr: 5e-4
+    epoch: 100
+    scheduler:
+        type: 'exponential'
+        gamma: 0.5
+        decay_epochs: 10
+    sampler_meta:
+        input_views_num: [2, 3] 
+        input_views_prob: [0.9, 0.1]
+
+eval_ep: 1
+
+
+

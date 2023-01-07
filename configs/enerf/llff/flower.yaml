@@ -14,5 +14,8 @@ test_dataset:
     scene: flower
 train:
     epoch: 147 # pretrained epoch + 8
+    sampler_meta:
+        input_views_num: [3, 4] 
+        input_views_prob: [0.4, 0.6]
 save_ep: 1
 eval_ep: 1

@@ -493,7 +493,7 @@ def save_trained_config(cfg):
     yaml.dump(cfg, open(train_config_path, 'w'))
 
 def load_pretrain(net, model_dir):
-    model_dir = os.path.join('data/trained_model', cfg.task, model_dir)
+    model_dir = os.path.join(cfg.workspace, 'trained_model', cfg.task, model_dir)
     if not os.path.exists(model_dir):
         return 1
 
