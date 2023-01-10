@@ -1,3 +1,7 @@
+**News**
+
+* `01/10/2023` We release [ENeRF-Outdoor](https://github.com/zju3dv/ENeRF/blob/master/docs/enerf_outdoor.md) dataset.
+
 # ENeRF: Efficient Neural Radiance Fields for Interactive Free-viewpoint Video
 
 > [Efficient Neural Radiance Fields for Interactive Free-viewpoint Video](https://arxiv.org/abs/2112.01517)  
