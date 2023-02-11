@@ -1,0 +1,53 @@
+parent_cfg: 'configs/enerf/dtu_pretrain.yaml'
+exp_name: 'actor1'
+
+# module
+train_dataset_module: lib.datasets.enerf_outdoor.enerf
+test_dataset_module: lib.datasets.enerf_outdoor.enerf
+network_module: lib.networks.enerf.network_composite
+loss_module: lib.train.losses.enerf
+evaluator_module: lib.evaluators.enerf
+visualizer_module: lib.visualizers.enerf
+
+
+num_fg_layers: 1
+# task config
+enerf:
+    train_input_views: [2, 3, 4]
+    train_input_views_prob: [0.2, 0.6, 0.2]
+    test_input_views: 3
+    viewdir_agg: False 
+    cas_config:
+        volume_planes: [32, 8]
+        num_samples: [2, 1] # 
+
+train_dataset:
+    data_root: 'enerf_outdoor' #
+    frames: [0, 1199, 1]
+    input_ratio: 0.8
+    input_h_w: [800, 1184]
+    input_views: [0, -1, 1]
+    render_views: [0, -1, 1]
+    split: 'train'
+    scene: 'actor1'
+
+test_dataset:
+    data_root: 'enerf_outdoor' #
+    frames: [0, 1199, 400]
+    input_ratio: 0.8
+    input_h_w: [800, 1184]
+    input_views: [1, -1, 1]
+    render_views: [0, 1, 1]
+    split: 'test'
+    scene: 'actor1'
+
+train:
+    lr: 5e-4
+    epoch: 50
+    scheduler:
+        type: 'exponential'
+        gamma: 0.2
+        decay_epochs: 50
+    sampler_meta:
+        input_views_num: [2, 3, 4] 
+        input_views_prob: [0.2, 0.6, 0.2]

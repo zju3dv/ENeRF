@@ -150,6 +150,174 @@ def get_depth_values(batch, D, level, device, depth, std, near_far):
         near_far = 1 / torch.clamp_min(near_far, 1e-6)
     return depth_values.contiguous() , near_far
 
+def get_depth_values_composite(batch, D, level, device, layer_inter, layer_idx):
+    B = len(batch['src_inps'])
+    H, W = batch['src_inps'].shape[-2:]
+    v_s = cfg.enerf.cas_config.volume_scale[level]
+    H, W = int(H * v_s), int(W * v_s)
+
+    if f'depth_{level-1}_{layer_idx}' in layer_inter:
+        depth = layer_inter[f'depth_{level-1}_{layer_idx}']
+        std = layer_inter[f'std_{level-1}_{layer_idx}']
+        near_far = layer_inter[f'near_far_{level-1}_{layer_idx}']
+    else:
+        depth = None
+        std = None
+        near_far = None
+
+    batch_near_far = batch['near_far'][:, layer_idx]
+
+    if depth is None:
+        if cfg.enerf.cas_config.depth_inv[level]:
+            disp_values = 1./batch_near_far[:, :1] + (torch.linspace(0., 1., steps=D, device=device, dtype=torch.float32).view(1, -1).repeat(B, 1)) * \
+                (1./batch_near_far[:, 1:] - 1./batch_near_far[:, :1])
+            depth_values = 1./disp_values
+        else:
+            depth_values = batch_near_far[:, :1] + (batch_near_far[:, 1:] - batch_near_far_[:, :1]) * \
+            torch.linspace(0., 1., steps=D, device=device, dtype=torch.float32).view(1, -1).repeat(B, 1)
+        depth_values = depth_values.view(B, D, 1, 1).repeat(1, 1, H, W)
+    else:
+        up_scale = cfg.enerf.cas_config.volume_scale[level] / cfg.enerf.cas_config.volume_scale[level-1]
+        if up_scale != 1.:
+            depth = F.interpolate(depth[:, None], None, scale_factor=up_scale, recompute_scale_factor=True, align_corners=True, mode='bilinear')[:, 0]
+            std = F.interpolate(std[:, None], None, scale_factor=up_scale, recompute_scale_factor=True, align_corners=True, mode='bilinear')[:, 0]
+            near_far = F.interpolate(near_far, None, scale_factor=up_scale, recompute_scale_factor=True, align_corners=True, mode='bilinear')
+
+        if cfg.enerf.cas_config.depth_inv[level-1]:
+            near_far_ = torch.stack([depth + std, depth-std], dim=-1)
+            mask = near_far_[..., 0] > near_far[:, 0]
+            near_far_[..., 0][mask] = near_far[:, 0][mask]
+            mask = near_far_[..., 1] < near_far[:, 1]
+            near_far_[..., 1][mask] = near_far[:, 1][mask]
+            near_far = 1. / near_far_
+        else:
+            __import__('ipdb').set_trace()
+            near_far_ = torch.stack([depth-std, depth+std])
+            mask = near_far_[..., 0] < near_far[:, 0]
+            near_far_[..., 0][mask] = near_far[:, 0][mask]
+            mask = near_far_[..., 1] > near_far[:, 1]
+            near_far_[..., 1][mask] = near_far[:, 1][mask]
+
+        if cfg.enerf.cas_config.depth_inv[level]:
+            linspace = torch.linspace(0., 1., steps=D, device=device, dtype=torch.float32)
+            linspace = linspace.view(1, 1, 1, -1).repeat(B, 1, 1, 1)
+            disp = 1./near_far[..., :1] + linspace * (1./near_far[..., 1:] - 1./near_far[..., :1])
+            depth_values = 1./disp
+            depth_values = depth_values.permute((0, 3, 1, 2))
+        else:
+            depth_values = near_far[..., :1] + torch.linspace(0., 1., steps=D, device=device, dtype=torch.float32).view(1, 1, 1, -1).repeat(B, 1, 1, 1) * (near_far[..., 1:] - near_far[..., :1])
+            # B H W D
+            depth_values = depth_values.permute((0, 3, 1, 2))
+            # B D H W
+    near_far = depth_values[:, [0, -1], :, :].detach()
+    if cfg.enerf.cas_config.depth_inv[level]:
+        near_far = 1 / torch.clamp_min(near_far, 1e-6)
+    return depth_values.contiguous() , near_far
+
+def build_rays_composite(depth, std, batch, training, near_far, level, up_scale=2., xywh=None):
+    device = depth.device
+    up_scale = cfg.enerf.cas_config.render_scale[level] / cfg.enerf.cas_config.volume_scale[level]
+    if up_scale != 1.:
+        depth = F.interpolate(depth[:, None], scale_factor=up_scale, mode='bilinear', align_corners=True)[:, 0]
+        std = F.interpolate(std[:, None], scale_factor=up_scale, mode='bilinear', align_corners=True)[:, 0]
+        near_far = F.interpolate(near_far, scale_factor=up_scale, mode='bilinear', align_corners=True)
+        # depth = F.interpolate(depth[:, None], scale_factor=up_scale, mode='nearest')[:, 0]
+        # std = F.interpolate(std[:, None], scale_factor=up_scale, mode='nearest')[:, 0]
+        # near_far = F.interpolate(near_far, scale_factor=up_scale, mode='nearest')
+
+    rays = batch[f'rays_{level}']
+    if cfg.enerf.cas_config.depth_inv[level]:
+        rays_near_far = torch.stack([depth+std, depth-std], dim=-1)
+        mask = rays_near_far[..., 0] > near_far[:, 0]
+        rays_near_far[..., 0][mask] = near_far[:, 0][mask]
+        mask = rays_near_far[..., 1] < near_far[:, 1]
+        rays_near_far[..., 1][mask] = near_far[:, 1][mask]
+    else:
+        rays_near_far = torch.stack([depth-std, depth+std], dim=-1)
+        mask = rays_near_far[..., 0] < near_far[:, 0]
+        rays_near_far[..., 0][mask] = near_far[:, 0][mask]
+        mask = rays_near_far[..., 1] > near_far[:, 1]
+        rays_near_far[..., 1][mask] = near_far[:, 1][mask]
+    near_far = near_far.permute(0, 2, 3, 1)
+    rays = batch[f'rays_{level}']
+    uv = rays[:, :, 6:].long()
+    rays_near_far = torch.stack([rays_near_far[i][uv[i][:, 1], uv[i][:, 0]] for i in range(len(rays_near_far))])
+    near_far = torch.stack([near_far[i][uv[i][:, 1], uv[i][:, 0]] for i in range(len(near_far))])
+    rays = torch.cat([rays, rays_near_far, near_far], dim=-1)
+    B, H, W = depth.shape
+    rays = rays.reshape(B, H, W, rays.shape[-1])
+    x, y, w, h = (xywh * cfg.enerf.cas_config.render_scale[level]).int()
+    x, y, w, h = x.item(), y.item(), w.item(), h.item()
+    rays = rays[:, y:y+h, x:x+w]
+    return rays.reshape(B, -1, rays.shape[-1]), [x, y, w, h], [B,H,W]
+
+def build_feature_volume_composite(feature, batch, D, layers_inter, level, layer_idx, xywh):
+    B, S, C, H, W = feature.shape
+    depth_values, near_far = get_depth_values_composite(batch, D, level, feature.device, layers_inter, layer_idx)
+    proj_mats = get_proj_mats(batch, src_scale=cfg.enerf.cas_config.im_feat_scale[level], tar_scale=cfg.enerf.cas_config.volume_scale[level])
+
+
+    volume_sum = 0
+    volume_sq_sum = 0
+    count = 0
+    for s in range(S):
+        feature_s = feature[:, s]
+        proj_mat = proj_mats[:, s]
+        warped_volume, _ = homo_warp_composite(feature_s, proj_mat, depth_values, xywh)
+        # warped_rgb, _ = homo_warp(rgb_s, proj_mat, depth_values, pad)
+
+        volume_sum = volume_sum + warped_volume
+        volume_sq_sum = volume_sq_sum + warped_volume ** 2
+        # rgb_volume.append(warped_rgb)
+
+        # mask = (grid > -1.01) * (grid < 1.01)
+        # mask = mask[..., 0] * mask[..., 1]
+        # count +=  mask[:, None].float()
+    # count = 1./(count+1e-8)
+    volume_variance = volume_sq_sum.div_(S).sub_(volume_sum.div_(S).pow_(2))
+    # rgb_volume = torch.cat(rgb_volume, dim=1)
+    # feature_volume = torch.cat((rgb_volume, volume_variance), dim=1)
+    feature_volume = volume_variance
+    return feature_volume, depth_values, near_far
+
+def homo_warp_composite(src_feat, proj_mat, depth_values, xywh):
+    x,y,w,h = xywh
+    B, D, H_T, W_T = depth_values.shape
+    C, H_S, W_S = src_feat.shape[1:]
+    device = src_feat.device
+
+    R = proj_mat[:, :, :3] # (B, 3, 3)
+    T = proj_mat[:, :, 3:] # (B, 3, 1)
+    # create grid from the ref frame
+    ref_grid = create_meshgrid(H_T, W_T, normalized_coordinates=False,
+                               device=device) # (1, H, W, 2)
+    ref_grid = ref_grid.permute(0, 3, 1, 2)[:, :, y:y+h, x:x+w] # (1, 2, H, W)
+    ref_grid = ref_grid.reshape(1, 2, h*w) # (1, 2, H*W)
+    ref_grid = ref_grid.expand(B, -1, -1) # (B, 2, H*W)
+    ref_grid = torch.cat((ref_grid, torch.ones_like(ref_grid[:,:1])), 1) # (B, 3, H*W)
+    ref_grid_d = ref_grid.repeat(1, 1, D) # (B, 3, D*H*W)
+    src_grid_d = R @ ref_grid_d + T/depth_values[:, :, y:y+h, x:x+w].reshape(B, 1, D*h*w)
+    del ref_grid_d, ref_grid, proj_mat, R, T, depth_values # release (GPU) memory
+
+    # project negative depth pixels to somewhere outside the image
+    # negative_depth_mask = src_grid_d[:, 2:] <= 1e-7
+    # src_grid_d[:, 0:1][negative_depth_mask] = W
+    # src_grid_d[:, 1:2][negative_depth_mask] = H
+    # src_grid_d[:, 2:3][negative_depth_mask] = 1
+
+    src_grid = src_grid_d[:, :2] / torch.clamp_min(src_grid_d[:, 2:], 1e-6) # divide by depth (B, 2, D*H*W)
+    # del src_grid_d
+    src_grid[:, 0] = (src_grid[:, 0])/((W_S - 1) / 2) - 1 # scale to -1~1
+    src_grid[:, 1] = (src_grid[:, 1])/((H_S - 1) / 2) - 1 # scale to -1~1
+    src_grid = src_grid.permute(0, 2, 1) # (B, D*H*W, 2)
+    src_grid = src_grid.view(B, D, h*w, 2)
+
+    warped_src_feat = F.grid_sample(src_feat, src_grid,
+                                    mode='bilinear', padding_mode='zeros',
+                                    align_corners=True) # (B, C, D, H*W)
+    warped_src_feat = warped_src_feat.view(B, C, D, h, w)
+    src_grid = src_grid.view(B, D, h, w, 2)
+    return warped_src_feat, src_grid
 
 def build_feature_volume(feature, batch, D, depth, std, near_far, level):
     B, S, C, H, W = feature.shape
@@ -702,3 +870,73 @@ def eval_sh_bases(basis_dim : int, dirs : torch.Tensor):
                     result[..., 23] = SH_C4[7] * xz * (xx - 3 * yy);
                     result[..., 24] = SH_C4[8] * (xx * (xx - 3 * yy) - yy * (3 * xx - yy));
     return result
+
+def parse_layer(layer, batch, hw, level, layer_idx):
+    B, N_rays, N_samples, _ = layer['net_output'].shape
+    H, W = hw
+    H, W = int(H*cfg.enerf.cas_config.render_scale[level]), int(W*cfg.enerf.cas_config.render_scale[level])
+    x, y, w, h = (batch['bbox'][0][layer_idx] * cfg.enerf.cas_config.render_scale[level]).int()
+    x, y, w, h = x.item(), y.item(), w.item(), h.item()
+    net_output = torch.zeros((B, H, W, N_samples, 4)).to(layer['net_output'].device)
+    z_vals = torch.zeros((B, H, W, N_samples)).to(net_output.device)
+    net_output[:, y:y+h, x:x+w] = layer['net_output'].reshape(B, h, w, N_samples, 4)
+    z_vals[:, y:y+h, x:x+w] = layer['z_vals'].reshape(B, h, w, N_samples)
+    net_output = net_output.reshape(B, -1, N_samples, 4)
+    z_vals = z_vals.reshape(B, -1, N_samples)
+    return net_output, z_vals
+
+def raw2outputs_composite(layers, batch, hw=(512, 512), level=0, white_bkgd=False, num_fg_layers=1):
+    """Transforms model's predictions to semantically meaningful values.
+    Args:
+        raw: [num_rays, num_samples along ray, 4]. Prediction from model.
+        z_vals: [num_rays, num_samples along ray]. Integration time.
+        rays_d: [num_rays, 3]. Direction of each ray.
+    Returns:
+        rgb_map: [num_rays, 3]. Estimated RGB color of a ray.
+        disp_map: [num_rays]. Disparity map. Inverse of depth map.
+        acc_map: [num_rays]. Sum of weights along each ray.
+        weights: [num_rays, num_samples]. Weights assigned to each sampled color.
+        depth_map: [num_rays]. Estimated distance to object.
+    """
+    net_output, z_vals = parse_layer(layers[0], batch, hw, level, 0)
+    layers[0]['net_output'], layers[0]['z_vals'] = net_output, z_vals
+    for i in range(1, num_fg_layers):
+        net_output_, z_vals_ = parse_layer(layers[i], batch, hw, level, i)
+        layers[i]['net_output'], layers[i]['z_vals'] = net_output_, z_vals_
+        net_output = torch.cat([net_output, net_output_], dim=-2)
+        z_vals = torch.cat([z_vals, z_vals_], dim=-1)
+    z_vals_ori = z_vals
+    if num_fg_layers > 1:
+        z_vals, idx = torch.sort(z_vals, dim=-1)
+        net_output = net_output.gather(dim=2, index=idx[..., None].repeat(1, 1, 1, 4))
+    else:
+        idx = None
+        pass
+
+    net_output = torch.cat([net_output, layers[-1]['net_output']], dim=-2)
+    z_vals = torch.cat([z_vals, layers[-1]['z_vals']], dim=-1)
+
+    raw = net_output
+
+    raw2alpha = lambda raw: 1.-torch.exp(-raw)
+    alpha = raw2alpha(raw[...,3])  # [N_rays, N_samples]
+    rgb = raw[..., :3]
+    # weights = alpha * tf.math.cumprod(1.-alpha + 1e-10, -1, exclusive=True)
+    T = torch.cumprod(1.-alpha+1e-10, dim=-1)[..., :-1]
+    T = torch.cat([torch.ones_like(alpha[..., 0:1]), T], dim=-1)
+    weights = alpha * T
+
+    rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3]
+    # weights = F.softmax(weights, dim=-1)
+    if z_vals is not None:
+        depth_map = torch.sum(weights*z_vals.detach(), -1)
+    else:
+        depth_map = None
+
+    if white_bkgd:
+        acc_map = torch.sum(weights, -1)
+        rgb_map = rgb_map + (1.-acc_map[...,None])
+
+    # return {'rgb': rgb_map, 'depth': depth_map, 'weights': weights, 'idx': idx, 'net_output': net_output, 'z_vals': z_vals_ori}
+    return {'rgb': rgb_map, 'depth': depth_map, 'weights': weights, 'net_output': net_output, 'idx': idx, 'z_vals': z_vals_ori}
+
