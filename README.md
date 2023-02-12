@@ -1,5 +1,6 @@
 **News**
 
+* `02/12/2023` We release ENeRF object-compositional representation code including training and visualization for ENeRF-Outdoor dataset.
 * `01/10/2023` We release [ENeRF-Outdoor](https://github.com/zju3dv/ENeRF/blob/master/docs/enerf_outdoor.md) dataset.
 
 # ENeRF: Efficient Neural Radiance Fields for Interactive Free-viewpoint Video
@@ -58,6 +59,10 @@ $workspace/nerf_synthetic
 Download the ZJU-MoCap dataset from [NeuralBody](https://github.com/zju3dv/neuralbody/blob/master/INSTALL.md#zju-mocap-dataset).
 Put it into $workspace/zju_mocap/CoreView_313.
 
+#### 4. ENeRF-Outdoor
+
+Download the ENeRF-Outdoor dataset from this [link](https://github.com/zju3dv/ENeRF/blob/master/docs/enerf_outdoor.md).
+Put it into $workspace/enerf_outdoor/actor1.
 <!-- #### 5. DynamicCap -->
 <!-- #### 6. Custom Data -->
 
@@ -93,6 +98,11 @@ Fine-tuning for 3000 and 11000 iterations takes about 11 minutes and 40 minutes,
 python train_net.py --cfg_file configs/enerf/zjumocap/zjumocap_train.yaml
 ```
 
+### Training on the ENeRF-Outdoor dataset (from scratch)
+
+```
+python train_net.py --cfg_file configs/enerf/enerf_outdoor/actor1.yaml
+```
 
 ## Evaluation
 
@@ -135,6 +145,12 @@ CoreView_313_level1 psnr: 31.48 ssim: 0.971 lpips:0.042
 {'psnr': 31.477305846323087, 'ssim': 0.9714806, 'lpips': 0.04184799361974001}
 ==============================
 FPS:  49.24468263992353
+```
+
+### Visualization for ENeRF-Outdoor dataset.
+
+```
+python run.py --type visualize --cfg_file configs/enerf/enerf_outdoor/actor1_path.yaml
 ```
 
 ## Interactive Rendering

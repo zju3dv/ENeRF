@@ -40,6 +40,6 @@ class Visualizer:
         d_min, d_max = np.array(self.depths).min(), np.array(self.depths).max()
         self.depths = [ (dpt - d_min)/(d_max-d_min) for dpt in self.depths ]
         imageio.mimwrite(os.path.join(cfg.result_dir, 'depth.mp4'), self.depths, fps=cfg.fps)
-
+        print('Save visualization results into {}'.format(cfg.result_dir))
 
 
