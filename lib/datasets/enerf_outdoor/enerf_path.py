@@ -14,6 +14,7 @@ import random
 from lib.config import cfg
 from lib.utils import data_utils
 from lib.utils import base_utils
+from lib.utils import rend_utils
 import trimesh
 import torch
 import matplotlib.pyplot as plt
@@ -85,46 +86,34 @@ class Dataset:
         b, e, s = input_views
         e = e if e != -1 else cam_len
         input_views = np.arange(cam_len)[b:e:s]
-        render_views = config['render_views']
-        b, e, s = render_views
-        e = e if e != -1 else cam_len
-        render_views = np.arange(cam_len)[b:e:s]
+        # render_views = config['render_views']
+        # b, e, s = render_views
+        # e = e if e != -1 else cam_len
+        # render_views = np.arange(cam_len)[b:e:s]
 
         train_cam_pos = c2ws[:, :3, 3][input_views]
 
         b, e, s = config['frames']
         e = e if e != -1 else frame_len
-        for tar_view in render_views:
-            cam_pos = c2ws[:, :3, 3][tar_view]
+
+        num_views = cfg.test_dataset.num_circle_view
+        self.w2cs = np.array(rend_utils.create_center_radius(center=np.array([0.4, 0.25, 1.22]), angle_x=2, up='z', radius=5, ranges=[60,120,num_views])).astype(np.float32)
+        bottom = np.array([[0, 0, 0, 1.]])[None].repeat(cfg.test_dataset.num_circle_view, 0)
+        self.w2cs = np.concatenate([self.w2cs, bottom], axis=1)
+        self.w2cs = self.w2cs.astype(np.float32)
+
+        for frame_id in np.arange(frame_len)[b:e:s]:
+            c2w = np.linalg.inv(self.w2cs[frame_id%num_views if frame_id//num_views%2 == 0 else num_views-1-frame_id%num_views])
+            cam_pos = c2w[:3, 3]
             distance = np.linalg.norm(train_cam_pos - cam_pos[None], axis=-1)
             argsorts = distance.argsort()
+            tar_view = -1
             input_views_num = cfg.enerf.train_input_views[-1] + 1 if self.split == 'train' else cfg.enerf.test_input_views
             if tar_view in input_views:
                 src_views = [input_views[i] for i in argsorts[:input_views_num]]
             else:
                 src_views = [input_views[i] for i in argsorts[1:input_views_num+1]]
-            self.metas += [(tar_view, src_views, frame_id) for frame_id in np.arange(frame_len)[b:e:s]]
-
-    def read_data_bg(self, view_id):
-        img_path = join(self.scene_root, 'bkgd', '{:02d}.jpg'.format(view_id))
-        img = np.array(imageio.imread(img_path) / 255.).astype(np.float32)
-        ixt = np.array(self.scene_info['ixts'][view_id]).copy()
-        D = np.array(self.scene_info['Ds'][view_id]).copy()
-        img = cv2.undistort(img, ixt, D)
-        if self.input_ratio != 1.:
-            img = cv2.resize(img, None, fx=self.input_ratio, fy=self.input_ratio, interpolation=cv2.INTER_AREA)
-            ixt[:2] *= self.input_ratio
-        if self.input_h_w is not None:
-            H, W, _ = img.shape
-            h, w = self.input_h_w
-            crop_h = int((H - h) * 0.65) #crop more
-            crop_h_ = (H - h) - crop_h
-            crop_w = int((W - w) * 0.5)
-            crop_w_ = W - w - crop_w
-            img = img[crop_h:-crop_h_, crop_w:-crop_w_]
-            ixt[1, 2] -= crop_h
-            ixt[0, 2] -= crop_w
-        return img
+            self.metas += [(tar_view, src_views, frame_id)]
 
     def read_data(self, view_id, frame_id):
         img_path = join(self.scene_root, 'images', '{:02d}'.format(view_id), '{:06d}.jpg'.format(frame_id))
@@ -153,6 +142,9 @@ class Dataset:
 
     def read_tar(self, view_id, frame_id):
         img, ext, ixt = self.read_data(view_id, frame_id)
+        frame_id_ = frame_id
+        num_views = cfg.test_dataset.num_circle_view
+        ext = self.w2cs[frame_id_%num_views if frame_id_//num_views%2 ==0 else num_views-1-frame_id_%num_views]
         corners_3d = self.scene_info['bbox'][frame_id] @ ext[:3, :3].T + ext[:3, 3].T
         bound_mask = data_utils.get_bound_2d_mask(corners_3d, ixt, img.shape[0], img.shape[1])
         near_far = np.array([corners_3d[:, 2].min(), corners_3d[:, 2].max()])
@@ -171,19 +163,13 @@ class Dataset:
     def __getitem__(self, index_meta):
         index, input_views_num = index_meta
         tar_view, src_views, frame_id = self.metas[index]
-        if self.split == 'train':
-            if random.random() < 0.1:
-                src_views = src_views + [tar_view]
-            src_views = random.sample(src_views[:input_views_num+1], input_views_num)
         scene_info = self.scene_info
-
-        tar_img, tar_ext, tar_ixt, xywh, near_far = self.read_tar(tar_view, frame_id)
-        src_inps, src_exts, src_ixts, bg_src_inps = self.read_src(src_views, frame_id)
+        tar_img, tar_ext, tar_ixt, xywh, near_far = self.read_tar(0, frame_id)
+        src_inps, src_exts, src_ixts = self.read_src(src_views, frame_id)
 
         ret = {'src_inps': src_inps,
                'src_exts': src_exts,
-               'src_ixts': src_ixts,
-               'bg_src_inps': bg_src_inps}
+               'src_ixts': src_ixts}
         ret.update({'tar_ext': tar_ext,
                     'tar_ixt': tar_ixt})
         ret.update({'near_far': np.array([near_far, self.bkgd_near_far[tar_view]]).astype(np.float32)})
@@ -196,15 +182,13 @@ class Dataset:
         return ret
 
     def read_src(self, src_views, frame_id):
-        inps, exts, ixts, bg_inps = [], [], [], []
+        inps, exts, ixts = [], [], []
         for src_view in src_views:
             img, ext, ixt = self.read_data(src_view, frame_id)
             inps.append(img * 2. - 1.)
             exts.append(ext)
             ixts.append(ixt)
-            bg_inps.append(self.read_data_bg(src_view) * 2. -1. )
-        return np.stack(inps).transpose((0, 3, 1, 2)).astype(np.float32), np.stack(exts), np.stack(ixts), \
-               np.stack(bg_inps).transpose((0, 3, 1, 2)).astype(np.float32)
+        return np.stack(inps).transpose((0, 3, 1, 2)).astype(np.float32), np.stack(exts), np.stack(ixts)
 
     def __len__(self):
         return len(self.metas)

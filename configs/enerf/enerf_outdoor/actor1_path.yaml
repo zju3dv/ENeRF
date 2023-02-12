@@ -1,0 +1,11 @@
+parent_cfg: 'configs/enerf/enerf_outdoor/actor1.yaml'
+test_dataset_module: lib.datasets.enerf_outdoor.enerf_path
+visualizer_module: lib.visualizers.enerf
+enerf:
+    test_input_views: 3
+    cas_config:
+        render_if: [False, True]
+test_dataset:
+    frames: [0, 200, 1]
+    num_circle_view: 100
+    input_views: [0, -1, 1]

@@ -6,12 +6,13 @@ from .feature_net import FeatureNet, CNNRender
 from .cost_reg_net import CostRegNet, MinCostRegNet
 from . import utils
 from lib.config import cfg
-from .nerf import NeRF
+from .nerf_ import NeRF
 
 class Network(nn.Module):
     def __init__(self,):
         super(Network, self).__init__()
         self.feature_net = FeatureNet()
+        self.feature_net_bg = FeatureNet()
         for i in range(cfg.enerf.cas_config.num):
             for layer_idx in range(cfg.num_fg_layers):
                 cost_reg_l = MinCostRegNet(int(32 * (2**(-i))))
@@ -27,9 +28,10 @@ class Network(nn.Module):
 
     def render_rays(self, rays, **kwargs):
         level, batch, im_feat, feat_volume, nerf_model = kwargs['level'], kwargs['batch'], kwargs['im_feat'], kwargs['feature_volume'], kwargs['nerf_model']
+        src_inps = kwargs['src_inps']
         world_xyz, uvd, z_vals = utils.sample_along_depth(rays, N_samples=cfg.enerf.cas_config.num_samples[level], level=level)
         B, N_rays, N_samples = world_xyz.shape[:3]
-        rgbs = utils.unpreprocess(batch['src_inps'], render_scale=cfg.enerf.cas_config.render_scale[level])
+        rgbs = utils.unpreprocess(src_inps, render_scale=cfg.enerf.cas_config.render_scale[level])
         up_feat_scale = cfg.enerf.cas_config.render_scale[level] / cfg.enerf.cas_config.im_ibr_scale[level]
         if up_feat_scale != 1.:
             B, S, C, H, W = im_feat.shape
@@ -74,6 +76,7 @@ class Network(nn.Module):
 
     def forward(self, batch):
         feats = self.forward_feat(batch['src_inps'], self.feature_net)
+        feats_bg = self.forward_feat(batch['src_inps'], self.feature_net_bg)
         ret = {}
         layers_inter = {}
         near_far_batch = batch['near_far'].clone()
@@ -109,11 +112,12 @@ class Network(nn.Module):
                         batch=batch,
                         im_feat=feats[f'level_{im_feat_level}'],
                         nerf_model=getattr(self, f'nerf_{i}_layer{layer_idx}'),
-                        level=i)
+                        level=i,
+                        src_inps=batch['src_inps'])
                     ret_layers.append(ret_layer)
             batch['near_far'] = near_far_batch[:, -1]
             feature_volume_, depth_values_, near_far_ = utils.build_feature_volume(
-                    feats[f'level_{i}'],
+                    feats_bg[f'level_{i}'],
                     batch,
                     D=[16, 4][i],
                     depth=depth_,
@@ -129,9 +133,10 @@ class Network(nn.Module):
                     rays=rays_,
                     feature_volume=feature_volume_,
                     batch=batch,
-                    im_feat=feats[f'level_{im_feat_level}'],
+                    im_feat=feats_bg[f'level_{im_feat_level}'],
                     nerf_model=getattr(self, f'nerf_{i}_bg'),
-                    level=i)
+                    level=i,
+                    src_inps=batch['bg_src_inps'])
                 ret_layers.append(ret_layer)
                 h, w = batch['src_inps'].shape[-2:]
                 ret_i = utils.raw2outputs_composite(ret_layers, batch, hw=[h,w], level=i, num_fg_layers=self.num_fg_layers)

@@ -660,7 +660,8 @@ def depth_regression(depth_prob, depth_values, level, batch):
         depth_values = 1./torch.clamp_min(depth_values, 1e-6) # to disp
     depth = torch.sum(prob_volume * depth_values, 1)
     var =  (prob_volume * (depth_values - depth.unsqueeze(1))**2).sum(1)
-    std = var.sqrt()
+    std = torch.clamp_min(var, 1e-8).sqrt()
+    # std = var .sqrt()
 
     # vis_prob(std, depth, prob_volume, depth_values)
     return depth, std

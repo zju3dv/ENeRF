@@ -91,7 +91,7 @@ def run_visualize():
                  cfg.trained_model_dir,
                  resume=cfg.resume,
                  epoch=cfg.test.epoch)
-    network.eval()
+    network.train()
 
     data_loader = make_data_loader(cfg, is_train=False)
     visualizer = make_visualizer(cfg)
@@ -100,8 +100,7 @@ def run_visualize():
         with torch.no_grad():
             output = network(batch)
         visualizer.visualize(output, batch)
-    if visualizer.write_video:
-        visualizer.summarize()
+    visualizer.summarize()
 
 if __name__ == '__main__':
     globals()['run_' + args.type]()
