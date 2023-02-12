@@ -91,7 +91,7 @@ def run_visualize():
                  cfg.trained_model_dir,
                  resume=cfg.resume,
                  epoch=cfg.test.epoch)
-    network.train()
+    network.eval()
 
     data_loader = make_data_loader(cfg, is_train=False)
     visualizer = make_visualizer(cfg)

@@ -115,6 +115,27 @@ class Dataset:
                 src_views = [input_views[i] for i in argsorts[1:input_views_num+1]]
             self.metas += [(tar_view, src_views, frame_id)]
 
+    def read_data_bg(self, view_id):
+        img_path = join(self.scene_root, 'bkgd', '{:02d}.jpg'.format(view_id))
+        img = np.array(imageio.imread(img_path) / 255.).astype(np.float32)
+        ixt = np.array(self.scene_info['ixts'][view_id]).copy()
+        D = np.array(self.scene_info['Ds'][view_id]).copy()
+        img = cv2.undistort(img, ixt, D)
+        if self.input_ratio != 1.:
+            img = cv2.resize(img, None, fx=self.input_ratio, fy=self.input_ratio, interpolation=cv2.INTER_AREA)
+            ixt[:2] *= self.input_ratio
+        if self.input_h_w is not None:
+            H, W, _ = img.shape
+            h, w = self.input_h_w
+            crop_h = int((H - h) * 0.65) #crop more
+            crop_h_ = (H - h) - crop_h
+            crop_w = int((W - w) * 0.5)
+            crop_w_ = W - w - crop_w
+            img = img[crop_h:-crop_h_, crop_w:-crop_w_]
+            ixt[1, 2] -= crop_h
+            ixt[0, 2] -= crop_w
+        return img
+
     def read_data(self, view_id, frame_id):
         img_path = join(self.scene_root, 'images', '{:02d}'.format(view_id), '{:06d}.jpg'.format(frame_id))
         img = np.array(imageio.imread(img_path) / 255.).astype(np.float32)
@@ -165,11 +186,12 @@ class Dataset:
         tar_view, src_views, frame_id = self.metas[index]
         scene_info = self.scene_info
         tar_img, tar_ext, tar_ixt, xywh, near_far = self.read_tar(0, frame_id)
-        src_inps, src_exts, src_ixts = self.read_src(src_views, frame_id)
+        src_inps, src_exts, src_ixts, bg_src_inps = self.read_src(src_views, frame_id)
 
         ret = {'src_inps': src_inps,
                'src_exts': src_exts,
-               'src_ixts': src_ixts}
+               'src_ixts': src_ixts,
+               'bg_src_inps': bg_src_inps}
         ret.update({'tar_ext': tar_ext,
                     'tar_ixt': tar_ixt})
         ret.update({'near_far': np.array([near_far, self.bkgd_near_far[tar_view]]).astype(np.float32)})
@@ -182,13 +204,15 @@ class Dataset:
         return ret
 
     def read_src(self, src_views, frame_id):
-        inps, exts, ixts = [], [], []
+        inps, exts, ixts, bg_inps = [], [], [], []
         for src_view in src_views:
             img, ext, ixt = self.read_data(src_view, frame_id)
             inps.append(img * 2. - 1.)
             exts.append(ext)
             ixts.append(ixt)
-        return np.stack(inps).transpose((0, 3, 1, 2)).astype(np.float32), np.stack(exts), np.stack(ixts)
+            bg_inps.append(self.read_data_bg(src_view) * 2. -1. )
+        return np.stack(inps).transpose((0, 3, 1, 2)).astype(np.float32), np.stack(exts), np.stack(ixts), \
+               np.stack(bg_inps).transpose((0, 3, 1, 2)).astype(np.float32)
 
     def __len__(self):
         return len(self.metas)

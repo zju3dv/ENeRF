@@ -99,7 +99,7 @@ class Dataset:
             distance = np.linalg.norm(train_cam_pos - cam_pos[None], axis=-1)
             argsorts = distance.argsort()
             input_views_num = cfg.enerf.train_input_views[-1] + 1 if self.split == 'train' else cfg.enerf.test_input_views
-            if tar_view in input_views:
+            if tar_view not in input_views:
                 src_views = [input_views[i] for i in argsorts[:input_views_num]]
             else:
                 src_views = [input_views[i] for i in argsorts[1:input_views_num+1]]

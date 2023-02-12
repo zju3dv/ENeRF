@@ -6,6 +6,6 @@ enerf:
     cas_config:
         render_if: [False, True]
 test_dataset:
-    frames: [0, 200, 1]
+    frames: [0, 1000, 1]
     num_circle_view: 100
     input_views: [0, -1, 1]

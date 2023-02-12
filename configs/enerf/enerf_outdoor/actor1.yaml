@@ -24,8 +24,8 @@ enerf:
 train_dataset:
     data_root: 'enerf_outdoor' #
     frames: [0, 1000, 1]
-    input_ratio: 0.8
-    input_h_w: [800, 1184]
+    input_ratio: 0.75
+    input_h_w: [768, 1024]
     input_views: [0, -1, 1]
     render_views: [0, -1, 1]
     split: 'train'
@@ -34,8 +34,8 @@ train_dataset:
 test_dataset:
     data_root: 'enerf_outdoor' #
     frames: [0, 1000, 400]
-    input_ratio: 0.8
-    input_h_w: [800, 1184]
+    input_ratio: 0.75
+    input_h_w: [768, 1024]
     input_views: [1, -1, 1]
     render_views: [0, 1, 1]
     split: 'test'
