@@ -12,3 +12,4 @@ pyglm
 pyopengl
 imgui
 termcolor
+trimesh
