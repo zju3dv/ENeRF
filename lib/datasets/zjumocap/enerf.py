@@ -93,9 +93,9 @@ class Dataset:
                 nearest_ids = argsorts_dir[:2*input_views_num]
 
                 if render_id not in train_ids or self.split == 'test':
-                    src_views = [train_ids[i] for i in argsorts[:input_views_num] if i in nearest_ids]
+                    src_views = [train_ids[i] for i in argsorts[:2*input_views_num] if i in nearest_ids][:input_views_num]
                 else:
-                    src_views = [train_ids[i] for i in argsorts[1:input_views_num+1] if i in nearest_ids]
+                    src_views = [train_ids[i] for i in argsorts[1:2*input_views_num+1] if i in nearest_ids][:input_views_num]
                 if len(src_views) < input_views_num:
                     __import__('ipdb').set_trace()
                 self.metas += [(scene, render_id, src_views, frame_id) for frame_id in (np.arange(frame_len))[b:e:s]]
