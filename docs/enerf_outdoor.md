@@ -10,4 +10,4 @@ Here is a visualization generated using colmap during calibration, which can be 
 
 ## Download
 
-If someone wants to download the **ENeRF-Outdoor** dataset, please fill in the [agreement](https://zjueducn-my.sharepoint.com/:f:/g/personal/haotongl_zju_edu_cn/Elsj6QFXMVVBvjaqR2CFWrUBrRMfTjFiYpVcA5BAqqM3gA?e=vL8tiQ), and email me (haotongl@zju.edu.cn) and cc Xiaowei Zhou (xwzhou@zju.edu.cn) and Sida Peng (pengsida@zju.edu.cn) to request the download link.
+If someone wants to download the **ENeRF-Outdoor** dataset, please fill in the [agreement](https://github.com/zju3dv/ENeRF/blob/master/assets/ENeRF-Outdoor_Agreement.pdf), and email me (haotongl@zju.edu.cn) and cc Xiaowei Zhou (xwzhou@zju.edu.cn) and Sida Peng (pengsida@zju.edu.cn) to request the download link.
