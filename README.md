@@ -33,7 +33,7 @@ export workspace=$PATH_TO_YOUR_WORKSPACE
 
 Download the pretrained model from [dtu_pretrain](https://zjueducn-my.sharepoint.com/:f:/g/personal/haotongl_zju_edu_cn/Elsj6QFXMVVBvjaqR2CFWrUBrRMfTjFiYpVcA5BAqqM3gA?e=vL8tiQ) (Pretrained on DTU dataset.)
 
-Put it into $workspace/trained_model/enerf/dtu_pretrain/latest.pth
+Put it into `$workspace/trained_model/enerf/dtu_pretrain/latest.pth`.
 
 #### 2. DTU
 Download the preprocessed [DTU training data](https://drive.google.com/file/d/1eDjh-_bxKKnEuz5h-HXS7EDJn59clx6V/view)
