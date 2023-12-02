@@ -43,7 +43,7 @@ enerf:
         loss_weight: [0.1, 1.]
 
 train_dataset:
-    data_root: 'dtu' #
+    data_root: 'mvs_training/dtu' #
     ann_file: 'data/mvsnerf/dtu_train_all.txt'
     split: 'train'
     batch_size: 2
