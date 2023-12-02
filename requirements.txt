@@ -3,7 +3,7 @@ opencv-python
 imgaug
 plyfile
 tqdm
-kornia
+kornia==0.6.8
 ipdb
 lpips
 tensorboardX
