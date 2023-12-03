@@ -89,6 +89,8 @@ class Dataset:
         if self.split != 'train': # only used for evaluation
             tar_dpt = data_utils.read_pfm(scene_info['dpt_paths'][tar_view])[0].astype(np.float32)
             tar_dpt = cv2.resize(tar_dpt, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_NEAREST)
+
+            # Bug?: tar_dpt.shape = (64, 80)
             tar_dpt = tar_dpt[44:556, 80:720]
             tar_mask = (tar_dpt > 0.).astype(np.uint8)
         else:

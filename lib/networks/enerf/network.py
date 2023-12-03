@@ -89,6 +89,8 @@ class Network(nn.Module):
                     std=std,
                     near_far=near_far,
                     level=i)
+            # feature_volume: 3D feature volume, represented by depth map
+            # depth_prob: coarse scene geometry, represented by confidence map
             feature_volume, depth_prob = getattr(self, f'cost_reg_{i}')(feature_volume)
             depth, std = utils.depth_regression(depth_prob, depth_values, i, batch)
             if not cfg.enerf.cas_config.render_if[i]:

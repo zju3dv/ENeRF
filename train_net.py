@@ -65,7 +65,8 @@ def train(cfg, network):
                        last=True)
 
         if not cfg.skip_eval and (epoch + 1) % cfg.eval_ep == 0 and cfg.local_rank == 0:
-            trainer.val(epoch, val_loader, evaluator, recorder)
+            print("validation has bug, skip")
+            # trainer.val(epoch, val_loader, evaluator, recorder)
 
     return network
 

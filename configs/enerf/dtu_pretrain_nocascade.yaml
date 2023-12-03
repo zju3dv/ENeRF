@@ -12,6 +12,7 @@ visualizer_module: lib.visualizers.enerf
 
 save_result: False
 eval_lpips: True
+skip_eval: True
 
 # task config
 enerf:
@@ -27,7 +28,7 @@ enerf:
     cas_config:
         num: 1
         depth_inv: [True]
-        # volume_scale: [0.25]
+        # volume_scale: [0.25] (scaling factor)
         volume_scale: [0.125]
         volume_planes: [48]
         im_feat_scale: [0.25]
