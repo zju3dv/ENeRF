@@ -24,7 +24,7 @@ enerf:
     eval_depth: False
     eval_center: False # only for llff evaluation (same as MVSNeRF: https://github.com/apchenstu/mvsnerf/blob/1fdf6487389d0872dade614b3cea61f7b099406e/renderer.ipynb)
     sample_on_mask: False # only for ZJU-MoCap/DynamicCap
-    cas_config:
+    cas_config: # Config for the cascade cost volume
         num: 2
         depth_inv: [True, False]
         volume_scale: [0.125, 0.5]
@@ -50,7 +50,7 @@ train_dataset:
     input_ratio: 1.
 
 test_dataset:
-    data_root: 'dtu' #
+    data_root: 'mvs_training/dtu' #
     ann_file: 'data/mvsnerf/dtu_val_all.txt'
     split: 'test'
     batch_size: 1

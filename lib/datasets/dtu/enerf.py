@@ -45,7 +45,7 @@ class Dataset:
                 ixt, ext, _ = data_utils.read_cam_file(cam_path)
                 ext[:3, 3] = ext[:3, 3]
                 ixt[:2] = ixt[:2] * 4
-                dpt_path = os.path.join(self.data_root, 'Depths/{}/depth_map_{:04d}.pfm'.format(scene, i))
+                dpt_path = os.path.join(self.data_root, 'Depths/{}_train/depth_map_{:04d}.pfm'.format(scene, i))
                 img_path = os.path.join(self.data_root, 'Rectified/{}_train/rect_{:03d}_3_r5000.png'.format(scene, i+1))
                 scene_info['ixts'].append(ixt.astype(np.float32))
                 scene_info['exts'].append(ext.astype(np.float32))

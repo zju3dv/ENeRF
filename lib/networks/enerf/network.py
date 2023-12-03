@@ -21,6 +21,7 @@ class Network(nn.Module):
             nerf_l = NeRF(feat_ch=cfg.enerf.cas_config.nerf_model_feat_ch[i]+3)
             setattr(self, f'nerf_{i}', nerf_l)
 
+    # TODO: replace with 3D GS Rendering
     def render_rays(self, rays, **kwargs):
         level, batch, im_feat, feat_volume, nerf_model = kwargs['level'], kwargs['batch'], kwargs['im_feat'], kwargs['feature_volume'], kwargs['nerf_model']
         world_xyz, uvd, z_vals = utils.sample_along_depth(rays, N_samples=cfg.enerf.cas_config.num_samples[level], level=level)
@@ -42,6 +43,7 @@ class Network(nn.Module):
         outputs = utils.raw2outputs(net_output, z_vals, cfg.enerf.white_bkgd)
         return outputs
 
+    # TODO: replace with 3D GS Rendering
     def batchify_rays(self, rays, **kwargs):
         all_ret = {}
         chunk = cfg.enerf.chunk_size
@@ -74,6 +76,7 @@ class Network(nn.Module):
 
 
     def forward(self, batch):
+        # Get the 2D features (3 levels)
         feats = self.forward_feat(batch['src_inps'])
         ret = {}
         depth, std, near_far = None, None, None
@@ -90,6 +93,8 @@ class Network(nn.Module):
             depth, std = utils.depth_regression(depth_prob, depth_values, i, batch)
             if not cfg.enerf.cas_config.render_if[i]:
                 continue
+
+            # TODO: replace NeRF with 3D-GS
             rays = utils.build_rays(depth, std, batch, self.training, near_far, i)
             # UV(2) +  ray_o (3) + ray_d (3) + ray_near_far (2) + volume_near_far (2)
             im_feat_level = cfg.enerf.cas_config.render_im_feat_level[i]
