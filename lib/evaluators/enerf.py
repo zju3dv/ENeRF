@@ -73,7 +73,9 @@ class Evaluator:
                     self.psnrs.append(psnr_item)
                 self.scene_psnrs[batch['meta']['scene'][b]+f'_level{i}'].append(psnr_item)
 
-                ssim_item = ssim(gt_rgb[b], pred_rgb[b], multichannel=True)
+                # ssim_item = ssim(gt_rgb[b], pred_rgb[b], multichannel=True) # Has Bug
+                ssim_item = ssim(gt_rgb[b], pred_rgb[b], multichannel=True, channel_axis=2, data_range=1)
+
                 if i == cfg.enerf.cas_config.num-1:
                     self.ssims.append(ssim_item)
                 self.scene_ssims[batch['meta']['scene'][b]+f'_level{i}'].append(ssim_item)
@@ -87,8 +89,13 @@ class Evaluator:
                     self.scene_lpips[batch['meta']['scene'][b]+f'_level{i}'].append(lpips_item)
 
                 if cfg.enerf.eval_depth and (i == cfg.enerf.cas_config.num - 1) and batch['meta']['scene'][b] in self.eval_depth_scenes:
-                    nerf_depth = output['depth_level1'].cpu().numpy()[b].reshape((h, w))
-                    mvs_depth = output['depth_mvs_level1'].cpu().numpy()[b]
+                    # For no_cascade: no key "depth_level1" and "depth_mvs_level1", replace with "depth_level0" and "depth_mvs_level0"
+                    # nerf_depth = output['depth_level1'].cpu().numpy()[b].reshape((h, w))
+                    # mvs_depth = output['depth_mvs_level1'].cpu().numpy()[b]
+
+                    nerf_depth = output['depth_level0'].cpu().numpy()[b].reshape((h, w))
+                    mvs_depth = output['depth_mvs_level0'].cpu().numpy()[b]
+
                     nerf_gt_depth = batch['tar_dpt'][b].cpu().numpy().reshape(*nerf_depth.shape)
                     mvs_gt_depth = cv2.resize(nerf_gt_depth, mvs_depth.shape[::-1], interpolation=cv2.INTER_NEAREST)
                     # nerf_mask = np.logical_and(nerf_gt_depth > 425., nerf_gt_depth < 905.)

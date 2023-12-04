@@ -87,11 +87,13 @@ class Dataset:
         H, W = tar_img.shape[:2]
         tar_ext, tar_ixt = scene_info['exts'][tar_view], scene_info['ixts'][tar_view]
         if self.split != 'train': # only used for evaluation
-            tar_dpt = data_utils.read_pfm(scene_info['dpt_paths'][tar_view])[0].astype(np.float32)
-            tar_dpt = cv2.resize(tar_dpt, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_NEAREST)
+            # Downloaded DTU dataset has 128*160 depth maps. Resize them to 512*640. (4x bigger)
+            tar_dpt = data_utils.read_pfm(scene_info['dpt_paths'][tar_view])[0].astype(np.float32) # (128, 160)
 
-            # Bug?: tar_dpt.shape = (64, 80)
-            tar_dpt = tar_dpt[44:556, 80:720]
+            # tar_dpt = cv2.resize(tar_dpt, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_NEAREST) # (64, 80)
+            # tar_dpt = tar_dpt[44:556, 80:720] # (512, 640)
+            tar_dpt = cv2.resize(tar_dpt, None, fx=4., fy=4., interpolation=cv2.INTER_NEAREST) # (512, 640)
+
             tar_mask = (tar_dpt > 0.).astype(np.uint8)
         else:
             tar_dpt = np.ones_like(tar_img)

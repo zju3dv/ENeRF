@@ -1,0 +1,12 @@
+parent_cfg: configs/enerf/dtu_pretrain_nocascade.yaml
+exp_name: dtu_ft_scan114
+enerf:
+    test_input_views: 4
+train_dataset:
+    scene: scan114
+test_dataset:
+    scene: scan114
+train:
+    epoch: 311 # pretrained epoch + 11
+save_ep: 1
+eval_ep: 1
